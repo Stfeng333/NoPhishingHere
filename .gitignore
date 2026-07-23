@@ -1,0 +1,5 @@
+.venv/
+*.csv
+backupDatasets/
+__pycache__/
+*.pyc
