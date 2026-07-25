@@ -1,5 +1,15 @@
 .venv/
+.venv-1/
 *.csv
 backupDatasets/
 __pycache__/
 *.pyc
+# Jupyter Notebook checkpoints folder
+.ipynb_checkpoints/
+
+# IPython default local directory
+.ipython/
+
+*.ipynb
+
+.vscode/

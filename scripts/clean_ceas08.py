@@ -1,79 +1,133 @@
-from __future__ import annotations
-
-import argparse
-import csv
-import re
 from pathlib import Path
+import html
+import re
+import unicodedata
 
 import pandas as pd
 
-SPACES_RE = re.compile(r"[ \t]+")
-SENDER_MISSING_RE = re.compile(r"^.*<\s*>$")
-NA_VALUE = "NaN"
+# load the dataset
+csv_path = Path.cwd() / 'CEAS_08.csv'
+if not csv_path.exists():
+    csv_path = Path.cwd().parent / 'CEAS_08.csv'
+
+# let's read everything as text first so missing-value normalization is explicit and consistent
+df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
+
+print('Columns:')
+print(df.columns.tolist())
+
+# we want to normalize blanks to a string sentinel so later stages can treat them consistently.
+df = df.apply(lambda column: column.map(lambda value: value.strip() if isinstance(value, str) else value))
+df = df.replace({'': pd.NA}).fillna('NaN')
+
+# cleanup rules:
+# - empty sender entries become 'NaN'
+# - malformed entries like 'username <>' become 'NaN'
+# - bare email addresses remain unchanged
+
+def clean_sender(value: str) -> str:
+    if value is None or value == 'NaN':
+        return 'NaN'
+
+    sender = str(value).strip()
+    if not sender:
+        return 'NaN'
+
+    if re.search(r'<\s*>\s*$', sender):
+        return 'NaN'
+
+    return sender
 
 
-def normalize_whitespace(value: str) -> str:
-    "we trim edges and collapse repeated the spaces or tabs while preserving line breaks"
-    normalized_lines = [SPACES_RE.sub(" ", line).strip() for line in value.splitlines()]
-    return "\n".join(normalized_lines).strip()
+def fix_encoding_artifacts(text: str) -> str:
+    replacements = {
+        'â€™': "'",
+        'â€œ': '"',
+        'â€': '"',
+        'â€“': '-',
+        'â€”': '-',
+        'Ã©': 'é',
+        'Ã¨': 'è',
+        'Ãª': 'ê',
+        'Ã«': 'ë',
+        'Ã ': 'à',
+        'Ã¢': 'â',
+        'Ã§': 'ç',
+        'Ã®': 'î',
+        'Ã¯': 'ï',
+        'Ã´': 'ô',
+        'Ã»': 'û',
+        'Ã¹': 'ù',
+        'Ã¶': 'ö',
+        'Ã¼': 'ü',
+        'Â©': '©',
+        'Â®': '®',
+        'Â£': '£',
+        'Â': '',
+    }
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
+    return text
 
 
-def normalize_field(value: str, *, is_sender: bool = False) -> str:
-    normalized_value = normalize_whitespace(value)
-    if not normalized_value:
-        return NA_VALUE
-
-    if is_sender and SENDER_MISSING_RE.match(normalized_value):
-        return NA_VALUE
-
-    return normalized_value
+def replace_symbol_noise(text: str) -> str:
+    return re.sub(r'([^\w\s]){4,}', ' [SYMBOL_NOISE] ', text)
 
 
-def parse_fields(input_path: Path) -> pd.DataFrame:
-    "loaded only CEAS_08.csv to normalize every field except sender parsing"
-    frame = pd.read_csv(input_path, dtype=str, keep_default_na=False)
+def clean_text(value: str) -> str:
+    if value is None or value == 'NaN':
+        return 'NaN'
 
-    for column in frame.columns:
-        frame[column] = frame[column].map(
-            lambda value, current_column=column: (
-                normalize_field(value, is_sender=current_column == "sender")
-                if isinstance(value, str)
-                else NA_VALUE
-            )
-        )
+    text = str(value)
+    text = html.unescape(text)
+    text = text.replace('\\n', ' ').replace('\\r', ' ').replace('\\t', ' ')
+    text = text.replace('\n', ' ').replace('\r', ' ').replace('\t', ' ')
+    text = text.replace('\\"', '"').replace("\\'", "'")
+    text = unicodedata.normalize('NFKC', text)
+    text = fix_encoding_artifacts(text)
+    text = replace_symbol_noise(text)
+    text = re.sub(r'\s+', ' ', text)
+    text = text.strip().lower()
+    return text.replace('[symbol_noise]', '[SYMBOL_NOISE]')
 
-    if "date" in frame.columns:
-        parsed_dates = pd.to_datetime(frame["date"], errors="coerce")
-        frame["date"] = parsed_dates.dt.strftime("%Y-%m-%d %H:%M:%S").fillna(NA_VALUE)
-    return frame
+# my way of cleaning sender and deriving email-level text features (you can change this the way you want)
+df['sender'] = df['sender'].map(clean_sender)
+df['subject_clean'] = df['subject'].map(clean_text)
+df['body_clean'] = df['body'].map(clean_text)
 
+df['raw_email_text'] = (
+    df['subject'].astype(str).where(df['subject'] != 'NaN', '')
+    + ' '
+    + df['body'].astype(str).where(df['body'] != 'NaN', '')
+).str.strip()
 
-def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Parsing CEAS_08 email logs except for sender parsing"
-        )
+df['total_char_count'] = df['raw_email_text'].str.len().fillna(0).astype(int)
+df['symbol_count'] = df['raw_email_text'].fillna('').str.count(r'[^\w\s]')
+df['symbol_ratio'] = df['symbol_count'].div(df['total_char_count'].replace(0, pd.NA)).fillna(0)
+df['repeating_symbol_count'] = df['raw_email_text'].fillna('').str.count(r'([^\w\s])\1{2,}')
+
+# we will replace long runs of symbols in the cleaned text
+for column in ['subject_clean', 'body_clean']:
+    df[column] = (
+        df[column]
+        .replace('NaN', '')
+        .str.replace(r'([^\w\s]){4,}', ' [SYMBOL_NOISE] ', regex=True)
+        .str.replace(r'\s+', ' ', regex=True)
+        .str.strip()
+        .str.lower()
+        .str.replace('[symbol_noise]', '[SYMBOL_NOISE]', regex=False)
+        .replace('', 'NaN')
     )
-    parser.add_argument(
-        "input_csv",
-        type=Path,
-        help="Path to the source CSV file.",
-    )
-    parser.add_argument(
-        "--output-csv",
-        type=Path,
-        default=None,
-        help="Optional path for a parsed CSV output file.",
-    )
-    return parser
+
+# Let's have a feature of merged model-ready field for later vectorization.
+df['email_text_clean'] = (
+    df['subject_clean'].replace('NaN', '')
+    + ' '
+    + df['body_clean'].replace('NaN', '')
+).str.strip()
+df['email_text_clean'] = df['email_text_clean'].replace('', 'NaN')
 
 
-def main() -> None:
-    args = build_parser().parse_args()
-    parsed_frame = parse_fields(args.input_csv)
-    output_path = args.output_csv or args.input_csv.with_name("clean.csv")
-    parsed_frame.to_csv(output_path, index=False, quoting=csv.QUOTE_MINIMAL)
+print(df[['sender', 'subject_clean', 'body_clean', 'symbol_count', 'symbol_ratio', 'repeating_symbol_count']].head(20))
+df.head(20)
 
-
-if __name__ == "__main__":
-    main()
