@@ -14,3 +14,9 @@
 - Other features extracted such as capitalization percentage
 - Load other datasets such as top 500 domain names and created features for emails where the sender is within said domains
 - Next step: look into tokenizing and using a BERT model to prepare data to train a model
+
+
+# To Do List
+- ngrams
+- BERT
+

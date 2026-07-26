@@ -198,3 +198,4 @@ df.head(20)
 df = df[['subject_clean', 'body_clean', 'subject_capitalized_percentage', 'body_capitalized_percentage', 'body_word_count', 'subject_word_count', 'sender_tld', 'is_weekend', 'is_night', 'is_known_domain', 'is_known_fortune_domain', 'total_char_count', 'symbol_count', 'symbol_ratio', 'repeating_symbol_count', 'email_text_clean']]
 
 df.to_csv('CEAS_08_cleaned.csv', index=False)
+
