@@ -1,6 +1,5 @@
 .venv/
 .venv-1/
-*.csv
 backupDatasets/
 __pycache__/
 *.pyc
