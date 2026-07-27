@@ -248,6 +248,8 @@ df = df[
         "symbol_ratio",
         "repeating_symbol_count",
         "email_text_clean",
+        "urls",
+        "label",
     ]
 ]
 
