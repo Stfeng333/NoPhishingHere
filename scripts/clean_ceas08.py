@@ -1,3 +1,4 @@
+#this script cleans the original dataset and generates a new dataset with the chosen features
 from pathlib import Path
 import html
 import re
