@@ -7,7 +7,7 @@ from sklearn.model_selection import StratifiedKFold
 from sklearn.metrics import classification_report, roc_auc_score
 from xgboost import XGBClassifier
 
-# 1. Load Data
+# 1. loading dataset, the clean one
 csv_path = Path.cwd() / "CEAS_08_cleaned.csv"
 if not csv_path.exists():
     csv_path = Path.cwd().parent / "CEAS_08_cleaned.csv"
@@ -15,7 +15,7 @@ if not csv_path.exists():
 df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
 y = df['label'].astype(int).values
 
-# 2. Setup Device & Model
+# 2. setup for DistilBERT embeddings extraction
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
@@ -23,7 +23,7 @@ tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
 model = AutoModel.from_pretrained("distilbert-base-uncased").to(device)
 model.eval()
 
-# 3. Extract pure DistilBERT embeddings
+# 3. we're just going to extract the DistilBERT embeddings for the email text
 def get_bert_embeddings(text_series, batch_size=32):
     text_list = text_series.tolist()
     embeddings = []
@@ -50,7 +50,7 @@ print("Extracting DistilBERT embeddings (No N-Grams)...")
 X_bert = get_bert_embeddings(df['email_text_clean'])
 print(f"Feature Matrix Shape (BERT only): {X_bert.shape}")
 
-# 4. Evaluate using 5-Fold Stratified CV
+# 4. we will evaluate BERT using 5-Fold Stratified CV
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 oof_preds = np.zeros(len(df))
 
@@ -70,13 +70,12 @@ for fold, (train_idx, val_idx) in enumerate(skf.split(X_bert, y)):
     oof_preds[val_idx] = clf.predict_proba(X_val)[:, 1]
     print(f"Fold {fold + 1} complete.")
 
-# 5. Output Metrics & Triage Statistics
+# 5. performance metrics of only using BERT embeddings
 binary_preds = (oof_preds >= 0.5).astype(int)
 print("\n=== Pure DistilBERT Classification Report ===")
 print(classification_report(y, binary_preds, digits=4))
 print(f"ROC-AUC Score: {roc_auc_score(y, oof_preds):.4f}")
 
-# Triage Distribution based on confidence scores
 inbox_cnt = (oof_preds < 0.30).sum()
 quarantine_cnt = ((oof_preds >= 0.30) & (oof_preds <= 0.75)).sum()
 spam_cnt = (oof_preds > 0.75).sum()

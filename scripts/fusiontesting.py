@@ -19,9 +19,7 @@ import torch
 from transformers import AutoModel, AutoTokenizer
 from xgboost import XGBClassifier
 
-# ---------------------------------------------------------
-# 1. Load Preprocessed Data
-# ---------------------------------------------------------
+# 1. loading Preprocessed Data
 csv_path = Path.cwd() / "CEAS_08_cleaned.csv"
 if not csv_path.exists():
     csv_path = Path.cwd().parent / "CEAS_08_cleaned.csv"
@@ -29,7 +27,7 @@ if not csv_path.exists():
 df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
 y = df["label"].astype(int).values
 
-# Parse Tabular Features
+# parsing Tabular Features
 tabular_cols = [
     "subject_capitalized_percentage",
     "body_capitalized_percentage",
@@ -48,9 +46,7 @@ X_tabular_raw = (
     df[tabular_cols].apply(pd.to_numeric, errors="coerce").fillna(0).values
 )
 
-# ---------------------------------------------------------
 # 2. Generate DistilBERT Embeddings
-# ---------------------------------------------------------
 print("Extracting DistilBERT embeddings...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
@@ -79,9 +75,7 @@ def extract_bert_features(text_series, batch_size=32):
 
 X_bert = extract_bert_features(df["email_text_clean"])
 
-# ---------------------------------------------------------
-# 3. Evaluation Engine Function
-# ---------------------------------------------------------
+# 3. function to evaluate either pure BERT or fused features using 5-Fold Stratified Cross-Validation
 skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
 
 
@@ -123,7 +117,7 @@ def evaluate_feature_set(feature_type="fused"):
                 [csr_matrix(tabular_val), tfidf_val, bert_val]
             ).tocsr()
 
-        # Train Classifier
+        # the training classifier
         clf = XGBClassifier(
             n_estimators=150,
             learning_rate=0.08,
@@ -135,14 +129,14 @@ def evaluate_feature_set(feature_type="fused"):
         clf.fit(X_train, y_train)
         oof_probs[val_idx] = clf.predict_proba(X_val)[:, 1]
 
-    # Calculate Binary Predictions at 0.5 threshold
+    # let's use a threshold of 0.5 to convert probabilities to binary predictions
     preds_binary = (oof_probs >= 0.5).astype(int)
 
-    # Confusion Matrix Components
+    # components of confusion matrix
     tn, fp, fn, tp = confusion_matrix(y, preds_binary).ravel()
     fpr = fp / (fp + tn)
 
-    # Metrics Summary
+    # summary of the performance metrics
     print("\n--- Performance Metrics ---")
     print(f"Accuracy:  {accuracy_score(y, preds_binary):.4f}")
     print(f"Precision: {precision_score(y, preds_binary):.4f}")
@@ -151,7 +145,6 @@ def evaluate_feature_set(feature_type="fused"):
     print(f"FPR:       {fpr:.4f}")
     print(f"ROC-AUC:   {roc_auc_score(y, oof_probs):.4f}")
 
-    # Triage Counts
     inbox = (oof_probs < 0.30).sum()
     quarantine = ((oof_probs >= 0.30) & (oof_probs <= 0.75)).sum()
     spam = (oof_probs > 0.75).sum()
@@ -166,7 +159,7 @@ def evaluate_feature_set(feature_type="fused"):
     return oof_probs
 
 
-# Execute evaluations for both approaches
+#evaluations for both approaches
 bert_probs = evaluate_feature_set(feature_type="pure_bert")
 fused_probs = evaluate_feature_set(feature_type="fused")
 

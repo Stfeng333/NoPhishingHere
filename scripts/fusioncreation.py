@@ -9,17 +9,17 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import hstack, csr_matrix
 from scipy.sparse import save_npz
 
-# 1. Load Data
+# 1. load the clean dataset
 csv_path = Path.cwd() / "CEAS_08_cleaned.csv"
 if not csv_path.exists():
     csv_path = Path.cwd().parent / "CEAS_08_cleaned.csv"
 
 df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
 
-# Target vector
+# our target vector will be the label column
 y = df['label'].astype(int).values
 
-# 2. Extract DistilBERT Embeddings
+# 2. to extract DistilBERT embeddings
 print("Extracting DistilBERT embeddings...")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
@@ -40,7 +40,7 @@ def get_bert_embeddings(text_list, batch_size=32):
 
 bert_features = get_bert_embeddings(df['email_text_clean'])
 
-# 3. Tabular Features
+# 3. tabular features
 tabular_cols = [
     'subject_capitalized_percentage', 'body_capitalized_percentage',
     'body_word_count', 'subject_word_count', 'is_weekend', 'is_night',
@@ -51,18 +51,18 @@ df_num = df[tabular_cols].apply(pd.to_numeric, errors='coerce').fillna(0)
 scaler = StandardScaler()
 tabular_features = scaler.fit_transform(df_num)
 
-# 4. N-Gram TF-IDF Features
+# 4. N-Gram TF-IDF features
 print("Extracting TF-IDF N-grams...")
 tfidf = TfidfVectorizer(ngram_range=(1, 3), max_features=1000, stop_words='english')
 tfidf_features = tfidf.fit_transform(df['email_text_clean'])
 
-# 5. Combine All Features
+# 5. combining features
 print("Fusing feature representations...")
 X_fused = hstack([csr_matrix(tabular_features), tfidf_features, csr_matrix(bert_features)]).tocsr()
 
 print(f"Final Feature Matrix Shape: {X_fused.shape}")
 
-#now we will save the sparse feature matrix
+# now we will save the sparse feature matrix
 save_npz("x_fused_features.npz", X_fused)
 np.save("y_labels.npy", y)
 print ("Saved fused feature matrix and labels to disk.")
