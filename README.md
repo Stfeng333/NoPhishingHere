@@ -1,22 +1,21 @@
-# Steven side
-- The script clean_ceas08 is only to clean the dataset, it does not create another dataset.
-- The cleaning that I did was: strip whitespaces, handle missing values (missing values are replaced with NaN), and cleaned the noise in the body text.
-- Before I cleaned the spam of symbols in the body text, I did some feature engineering. The feature column "symbol_count" to count total special characters. The feature column "symbol_ratio" that performs "symbol_count / total_char_count" to give us the symbol density relative to the email length.
-- Finally, I converted the Subject and Body texts to lowercase.
-- You can visualize how the dataset looks like after running my script
-- On Saturday I will work on feature engineering with you (I will most likely generate n-grams)
+# How to run
+- Create a virtual environment and install dependencies from requirements.txt
+- Download the email logs database to test (the database must have the fields: sender, subject, body)
+- Download the top most trusted domains databases (these will be used to compare domains to help the model catch phishing emails)
+- Run your original database through cleaningground.py to clean and parse the email logs, it will also generate a new csv for you to use later (you need to put in the file name manually in the code)
+- Pass the new clean database generated from the recent step through fusiontesting.py (you need to put in the file name manually in the code)
+- It takes around 10-20 minutes to run the database through the model to get results
+- The output will be the results of categorizing the emails, and the performance metrics. 
+- The model shows you 3 methods used (only N-grams/TF-IDF, only BERT, and combination between Tabular + N-grams/TF-IDF + BERT )
 
+# General steps of our project
+- The team used the following datasets from Kaggle: CEAS_08.csv, Enron.csv, SpamAssasin.csv. Credits to "Naser Abdullah Alam. (2024). Phishing Email Dataset [Dataset]. Kaggle. https://doi.org/10.34740/KAGGLE/DS/5074342"
+- Additional citations: *Al-Subaiey, A., Al-Thani, M., Alam, N. A., Antora, K. F., Khandakar, A., & Zaman, S. A. U. (2024, May 19). Novel Interpretable and Robust Web-based AI Platform for Phishing Email Detection. ArXiv.org. https://arxiv.org/abs/2405.11619*
+- The datasets chosen to have a baseline for trusted domainds and TLDs: https://www.gigasheet.com/sample-data/fortune-500-email-domains, https://github.com/fffaraz/datasets/blob/master/top500Domains.csv.
+- The main dataset used to develop the cleaning/parsing script was CEAS_08.csv
+- Hence, we developed the cleaning/parsing script to handle email logs that with the format presented on CEAS_08.csv
+- Then the new clean dataset generated runs through finalfusion.py, which outputs the result of the model testing the use of only N-grams/TF-IDF, the use of only BERT, and finally the fusion between (Tabular + Ngrams/TF-IDF + BERT)
+- There are different percentages in the metrics on each of the runs, showing that the model is learning and training rather than memorizing the results
 
-# Henry side
-- Extracted features from sender inculding domain, name, TLD
-- Extracted features from timestamp including is_weekend and is_night for unusual sending times
-- Engineered features based on subject and body length/word count
-- Other features extracted such as capitalization percentage
-- Load other datasets such as top 500 domain names and created features for emails where the sender is within said domains
-- Next step: look into tokenizing and using a BERT model to prepare data to train a model
-
-
-# To Do List
-- ngrams
-- BERT
-
+# Details of the project
+- 

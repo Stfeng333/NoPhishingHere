@@ -4,10 +4,10 @@ import re
 import unicodedata
 import pandas as pd
 
-#loading desired datasets, in this project we will use the CEAS_08 dataset, top500Domains dataset, and Fortune_500_Email_Domains datasets
-csv_path = Path.cwd() / "CEAS_08.csv"
+# loading desired datasets
+csv_path = Path.cwd() / "SpamAssasin.csv"
 if not csv_path.exists():
-    csv_path = Path.cwd().parent / "CEAS_08.csv"
+    csv_path = Path.cwd().parent / "SpamAssasin.csv"
 
 domain_csv_path = Path.cwd() / "top500Domains.csv"
 if not domain_csv_path.exists():
@@ -180,7 +180,7 @@ df["email_text_clean"] = df["email_text_clean"].replace("", "NaN")
 if "urls" not in df.columns:
     df["urls"] = "NaN"
 
-# chosen features for export
+# chosen features for export (can change depending on your choice of features)
 export_cols = [
     "subject_clean",
     "body_clean",
@@ -202,8 +202,7 @@ export_cols = [
     "label",
 ]
 
+#name the new dataset file as you like
 df = df[export_cols]
-df.to_csv("CEAS_08_cleaned.csv", index=False)
-print(
-    "preprocessed the dataset and generated a new clean dataset for the testing script"
-)
+df.to_csv("cleanassassin.csv", index=False)
+

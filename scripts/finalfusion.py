@@ -18,9 +18,9 @@ from transformers import AutoModel, AutoTokenizer
 from xgboost import XGBClassifier
 
 # 1. chosing the preprocessed dataset
-csv_path = Path.cwd() / "cleanassassin.csv"
+csv_path = Path.cwd() / "CEAS_08_cleaned.csv"
 if not csv_path.exists():
-    csv_path = Path.cwd().parent / "cleanassassin.csv"
+    csv_path = Path.cwd().parent / "CEAS_08_cleaned.csv"
 
 df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
 y = df["label"].astype(int).values
