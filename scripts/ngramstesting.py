@@ -10,14 +10,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
+import pandas as pd
+import numpy as np
+from pathlib import Path
 
 import pandas as pd
 import nltk
 from nltk.util import ngrams
 
-file = "CEAS_08_cleaned.csv"
+csv_path = Path.cwd() / "CEAS_08_cleaned.csv"
+if not csv_path.exists():
+    csv_path = Path.cwd().parent / "CEAS_08_cleaned.csv"
 
-df = pd.read_csv(file)
+df = pd.read_csv(csv_path, dtype=str, keep_default_na=False)
 
 X, X_val, y, y_val = train_test_split(
     df["body_clean"], df["label"], test_size=0.2, random_state=42, stratify=df["label"]
