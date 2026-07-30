@@ -9,7 +9,7 @@
 - The model shows you 3 methods used (only N-grams/TF-IDF, only BERT, and combination between Tabular + N-grams/TF-IDF + BERT )
 
 # General steps of our project
-- The team used the following datasets from Kaggle: CEAS_08.csv, Enron.csv, SpamAssasin.csv. Credits to "Naser Abdullah Alam. (2024). Phishing Email Dataset [Dataset]. Kaggle. https://doi.org/10.34740/KAGGLE/DS/5074342"
+- The team used the following datasets from Kaggle: CEAS_08.csv, Nigerian_Fraud.csv, SpamAssasin.csv. Credits to "Naser Abdullah Alam. (2024). Phishing Email Dataset [Dataset]. Kaggle. https://doi.org/10.34740/KAGGLE/DS/5074342"
 - Additional citations: *Al-Subaiey, A., Al-Thani, M., Alam, N. A., Antora, K. F., Khandakar, A., & Zaman, S. A. U. (2024, May 19). Novel Interpretable and Robust Web-based AI Platform for Phishing Email Detection. ArXiv.org. https://arxiv.org/abs/2405.11619*
 - The datasets chosen to have a baseline for trusted domainds and TLDs: https://www.gigasheet.com/sample-data/fortune-500-email-domains, https://github.com/fffaraz/datasets/blob/master/top500Domains.csv.
 - The main dataset used to develop the cleaning/parsing script was CEAS_08.csv

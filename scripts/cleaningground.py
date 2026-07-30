@@ -5,9 +5,9 @@ import unicodedata
 import pandas as pd
 
 # loading desired datasets
-csv_path = Path.cwd() / "SpamAssasin.csv"
+csv_path = Path.cwd() / "Nigerian_Fraud.csv"
 if not csv_path.exists():
-    csv_path = Path.cwd().parent / "SpamAssasin.csv"
+    csv_path = Path.cwd().parent / "Nigerian_Fraud.csv"
 
 domain_csv_path = Path.cwd() / "top500Domains.csv"
 if not domain_csv_path.exists():
@@ -204,5 +204,5 @@ export_cols = [
 
 #name the new dataset file as you like
 df = df[export_cols]
-df.to_csv("cleanassassin.csv", index=False)
+df.to_csv("cleannigerianfraud.csv", index=False)
 
